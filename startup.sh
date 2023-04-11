@@ -1,0 +1,1 @@
+java  -jar azure-utilities.jar

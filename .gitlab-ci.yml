@@ -1,0 +1,101 @@
+default:
+  tags:
+    - dtx-iac-runner
+
+include:
+  - project: "digitaltechnologytransformation/devops-repositories/dtx-cicd-templates"
+    file: "build/dtx-build.yml"
+    ref: master
+  - project: "digitaltechnologytransformation/devops-repositories/dtx-cicd-templates"
+    file: "deploy/dtx-deploy.yml"
+    ref: master
+
+
+variables:
+  OPENSHIFT_ENV: 
+    value: "LOWER"
+    description: "Valid Env is LOWER"
+  OPENSHIFT_PROJECT:
+    value: "dev-cloud-accelerator"  # Deploy to staging by default
+    description: "Valid Project is: dev-developer-portal"  
+  DEPLOYMENT_CONFIG_NAME:
+    value: "azure-utilities"
+    description: "Deployment Config name will be used during Docker Image build as well as assigning image to application."
+  DOCKER_REPO_NAME:
+    value: "developer-portal-dev"
+    description: "REPO Name will be 'developer-portal-dev' for Dev environment and 'developer-portal-release' for QA/PERF/ST/PROD/DR environments"
+  DOCKER_IMAGE_TAG:
+    value: "PORT-develop"
+    description: "To assign the version number to image. For Dev environment, it will be 'PORT-develop' and 'PORT-{TRACKING-TICKET-NUMBER}' for the QA/PERF/ST/PROD/DR images"
+  DOCKER_FILE:
+    value: "./Dockerfile"
+  DRY_RUN_FLAG:
+    value: "false"
+    description: "Set value to false or true. Openshift deployment will run as dry-run if the value is set to true"
+
+
+workflow:
+  rules:
+    - if: $OPENSHIFT_ENV == "LOWER" && $OPENSHIFT_PROJECT == "dev-cloud-accelerator" && $DEPLOYMENT_CONFIG_NAME == "azure-utilities"
+
+stages:
+  - junit
+  - build
+  - deploy
+
+running junit:
+  stage: junit
+  script:
+    - echo "Build Started ......"
+   # - npm install
+   # - echo $?
+   # - echo "Install Completed ......"
+   # - echo "Junits Started ......"
+   # - npm run coverage
+   # - npm run lint
+   # - echo $?    
+    - echo "Junits Completed ......"
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    paths:
+      - junit.xml
+      - coverage  
+    expire_in: 5 days
+    reports:
+      junit: junit.xml
+    when: always
+  resource_group: dev-env-devportal-ui-bd
+  except:
+    - master
+    - /^Release-RC_.*$/
+
+build and push image:
+  stage: build
+  extends: .build
+  resource_group: dev-env-devportal-ui-bd
+  only:
+    refs:
+      - branches
+    variables:
+      - $CI_PIPELINE_SOURCE == "push" && $CI_BUILD_REF_NAME == "develop"
+      - $CI_PIPELINE_SOURCE == "web"
+  except:
+    refs:
+      - master
+      - /^Release-RC_.*$/
+
+deploy to openshift:
+  stage: deploy
+  extends: .deploy
+  resource_group: dev-env-devportal-ui-bd
+  only:
+    refs:
+      - branches
+    variables:
+      - $CI_PIPELINE_SOURCE == "push" && $CI_BUILD_REF_NAME == "develop"
+      - $CI_PIPELINE_SOURCE == "web"
+  except:
+    refs:
+      - master
+      - /^Release-RC_.*$/
+
