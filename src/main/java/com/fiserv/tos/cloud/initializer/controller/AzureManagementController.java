@@ -137,10 +137,11 @@ public class AzureManagementController {
             for (GenericResource resource : resources) {
                 ResourceId resourceId = ResourceId.fromString(resource.id());
                 resourceList.add(resourceId);
+                System.out.println(resourceId);
                 System.out.printf("- Resource type: %s, Name: %s, ID: %s%n", resourceId.resourceType(), resourceId.name(), resourceId.toString());
             }
         }
-        return jsonMessage(resourceList);
+        return jsonMessage(resources);
     }
 
 
