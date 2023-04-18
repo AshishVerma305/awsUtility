@@ -7,10 +7,14 @@ import com.fiserv.tos.cloud.initializer.model.InitializrResourceGroup;
 import com.fiserv.tos.cloud.initializer.model.InitializrSubscription;
 import com.fiserv.tos.cloud.initializer.model.InitializrVnet;
 import com.fiserv.tos.cloud.initializer.util.AzureSecurityUtil;
+import com.microsoft.azure.Resource;
 import com.microsoft.azure.management.Azure;
 import com.microsoft.azure.management.network.Network;
+import com.microsoft.azure.management.resources.GenericResource;
 import com.microsoft.azure.management.resources.ResourceGroup;
 import com.microsoft.azure.management.resources.Subscription;
+
+import com.microsoft.azure.management.resources.fluentcore.arm.ResourceId;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 @RestController
 @AllArgsConstructor
@@ -79,6 +84,63 @@ public class AzureManagementController {
         return jsonMessage(list);
     }
 
+    @GetMapping("/resources")
+    public String getResources(@RequestParam(name = "subscriptionid") String subscriptionId,@RequestParam(name = "resourceGroupName") String resourceGroupName,@RequestParam(name = "resourceName") String resourceName) {
+        Azure azure = null;
+        try {
+            azure = this.azureSecurityUtil.getAzure(subscriptionId);
+        } catch (Exception e) {
+            return jsonMessage(new ErrorMessage("Error accessing subscription:"+e.getMessage()));
+        }
+
+        ResourceGroup resourceGroup = azure.resourceGroups().getByName(resourceGroupName);
+        if (resourceGroup == null) {
+            System.out.printf("Resource group '%s' not found.%n", resourceGroupName);
+            return "x";
+        }
+
+        ResourceId resourceId = ResourceId.fromString(String.format("/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Compute/virtualMachines/%s", subscriptionId, resourceGroupName, resourceName));
+        GenericResource resource = azure.genericResources().getById(resourceId.toString());
+        if (resource == null) {
+            System.out.printf("Resource '%s' not found in resource group '%s'.%n", resourceName, resourceGroupName);
+            return "x";
+        }
+
+        System.out.printf("Resource '%s' (%s) found in resource group '%s'.%n", resourceName, resourceId.toString(), resourceGroupName);
+        return "x";
+    }
+
+
+    @GetMapping("/getAllResources")
+    public String getAllResources(@RequestParam(name = "subscriptionid") String subscriptionId,@RequestParam(name = "resourceGroupName") String resourceGroupName) {
+        Azure azure = null;
+        try {
+            azure = this.azureSecurityUtil.getAzure(subscriptionId);
+        } catch (Exception e) {
+            return jsonMessage(new ErrorMessage("Error accessing subscription:"+e.getMessage()));
+        }
+
+        ResourceGroup resourceGroup = azure.resourceGroups().getByName(resourceGroupName);
+        if (resourceGroup == null) {
+            System.out.printf("Resource group '%s' not found.%n", resourceGroupName);
+            return "x";
+        }
+
+        System.out.printf("Resource group '%s' found with ID: %s%n", resourceGroupName, resourceGroup.id());
+
+        List<GenericResource> resources = azure.genericResources().listByResourceGroup(resourceGroupName);
+        if (resources == null || resources.isEmpty()) {
+            System.out.printf("No resources found in resource group '%s'.%n", resourceGroupName);
+        } else {
+            System.out.printf("Resources in resource group '%s':%n", resourceGroupName);
+            for (GenericResource resource : resources) {
+                ResourceId resourceId = ResourceId.fromString(resource.id());
+                System.out.printf("- Resource type: %s, Name: %s, ID: %s%n", resourceId.resourceType(), resourceId.name(), resourceId.toString());
+            }
+        }
+
+        return jsonMessage(resources);
+    }
 
 
     private static String jsonMessage(Object error){
