@@ -2,10 +2,7 @@ package com.fiserv.tos.cloud.initializer.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fiserv.tos.cloud.initializer.model.ErrorMessage;
-import com.fiserv.tos.cloud.initializer.model.InitializrResourceGroup;
-import com.fiserv.tos.cloud.initializer.model.InitializrSubscription;
-import com.fiserv.tos.cloud.initializer.model.InitializrVnet;
+import com.fiserv.tos.cloud.initializer.model.*;
 import com.fiserv.tos.cloud.initializer.util.AzureSecurityUtil;
 import com.microsoft.azure.Resource;
 import com.microsoft.azure.management.Azure;
@@ -136,12 +133,16 @@ public class AzureManagementController {
             System.out.printf("Resources in resource group '%s':%n", resourceGroupName);
             for (GenericResource resource : resources) {
                 ResourceId resourceId = ResourceId.fromString(resource.id());
-                resourceList.add(resourceId);
                 System.out.println(resourceId);
+                Resources resourcesData=new Resources();
+                resourcesData.setResourceId(resourceId.toString());
+                resourcesData.setResourceName(resourceId.name());
+                resourcesData.setResourceType(resourceId.resourceType());
+                resourceList.add(resourcesData);
                 System.out.printf("- Resource type: %s, Name: %s, ID: %s%n", resourceId.resourceType(), resourceId.name(), resourceId.toString());
             }
         }
-        return jsonMessage(resources);
+        return jsonMessage(resourceList);
     }
 
 
