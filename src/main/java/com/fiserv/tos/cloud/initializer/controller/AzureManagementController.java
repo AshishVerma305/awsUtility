@@ -129,17 +129,18 @@ public class AzureManagementController {
         System.out.printf("Resource group '%s' found with ID: %s%n", resourceGroupName, resourceGroup.id());
 
         List<GenericResource> resources = azure.genericResources().listByResourceGroup(resourceGroupName);
+        List resourceList=new ArrayList();
         if (resources == null || resources.isEmpty()) {
             System.out.printf("No resources found in resource group '%s'.%n", resourceGroupName);
         } else {
             System.out.printf("Resources in resource group '%s':%n", resourceGroupName);
             for (GenericResource resource : resources) {
                 ResourceId resourceId = ResourceId.fromString(resource.id());
+                resourceList.add(resourceId);
                 System.out.printf("- Resource type: %s, Name: %s, ID: %s%n", resourceId.resourceType(), resourceId.name(), resourceId.toString());
             }
         }
-
-        return jsonMessage(resources);
+        return jsonMessage(resourceList);
     }
 
 
