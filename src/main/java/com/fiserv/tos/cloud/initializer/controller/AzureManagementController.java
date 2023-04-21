@@ -17,10 +17,11 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.util.*;
 
 @RestController
 @AllArgsConstructor
@@ -145,18 +146,18 @@ public class AzureManagementController {
         return jsonMessage(resourceList);
     }
     @GetMapping("/getVms")
-    public String getAllVMS(@RequestParam(name = "subscriptionid") String subscriptionId, @RequestParam(name = "resourceGroupName") String resourceGroupName, Model model) {
+    public ModelAndView getAllVMS(@RequestParam(name = "subscriptionid") String subscriptionId, @RequestParam(name = "resourceGroupName") String resourceGroupName,Map<String, Object> model) {
         Azure azure = null;
         try {
             azure = this.azureSecurityUtil.getAzure(subscriptionId);
         } catch (Exception e) {
-            return jsonMessage(new ErrorMessage("Error accessing subscription:"+e.getMessage()));
+//            return jsonMessage(new ErrorMessage("Error accessing subscription:"+e.getMessage()));
         }
 
         ResourceGroup resourceGroup = azure.resourceGroups().getByName(resourceGroupName);
         if (resourceGroup == null) {
             System.out.printf("Resource group '%s' not found.%n", resourceGroupName);
-            return "x";
+//            return "x";
         }
 
         System.out.printf("Resource group '%s' found with ID: %s%n", resourceGroupName, resourceGroup.id());
@@ -177,15 +178,20 @@ public class AzureManagementController {
                     resourcesData.setResourceName(resourceId.name());
                     resourcesData.setResourceType(resourceId.resourceType());
                     resourceList.add(resourcesData);
-                    model.addAttribute("subscriptionId",subscriptionId);
-                    model.addAttribute("resourceGroupName",resourceGroupName);
-                    model.addAttribute("resource",resourceId.name());
-                    break;
+                    model.put("subscriptionId",subscriptionId);
+                    model.put("resourceGroupName",resourceGroupName);
+                    model.put("resource",resourceId.name());
                 }
                 System.out.printf("- Resource type: %s, Name: %s, ID: %s%n", resourceId.resourceType(), resourceId.name(), resourceId.toString());
             }
         }
-        return "chaosAzureVmYaml";
+        return new ModelAndView("myyaml", model);
+    }
+
+    @GetMapping("/")
+    public ModelAndView getProducts(Map<String, Object> model){
+        model.put("message","nope");
+        return new ModelAndView("myyaml", model);
     }
 
     private static String jsonMessage(Object error){

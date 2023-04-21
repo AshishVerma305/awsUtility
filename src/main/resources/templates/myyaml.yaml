@@ -1,0 +1,31 @@
+project-uaid: 1024
+project-name: dev-portal
+config:
+  maxMilliSecondsBetweenRuns: 20000
+  maxMilliSecondsBetweenScenarios:  {{message}}
+  scenarios:
+    - name: "Chaos Test UI"
+      steps:
+        - podAction:
+            server: https://api.dtuscedevportala.centralus.aroapp.io:6443
+            matches:
+              - labels:
+                  # Kube namespace and pod name
+                  namespace: "perf-developer-portal"
+                  selector: "app=dev-portal-ui"
+                  envType: "openshift"
+            actions:
+              - auto-scaler:
+                  status: OFF
+              - scale-down:
+                  replicas: 0
+      hypothesize:
+        chaos-state:
+          - hypothesis:
+              - name : ui-alert
+                endpoint: "https://management.azure.com/subscriptions/754bc484-e7df-461c-90dd-8f3887aeb94f/providers/Microsoft.AlertsManagement/alerts?api-version=2019-03-01&monitorCondition=Fired&customTimeRange=2021-12-21T06:15:47Z/2021-12-21T06:30:45Z"
+                handler : alert
+            rules:
+              - name: ui-alert
+                delaytime: 720000
+                match : [{"name":"perf_dev-portal-ui-pod_count_zero_alert"}]

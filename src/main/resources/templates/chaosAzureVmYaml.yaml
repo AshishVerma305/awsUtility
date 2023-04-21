@@ -11,12 +11,12 @@ config:
       # proxyAction for Chaos experimenting an endpoint for failures, latency, different http response codes etc.
       steps:
         - podAction:
-            server: { { subscriptionId } } # azure subscription
+            server: {{subscriptionId}} # azure subscription
             matches:
               - labels:
                   # Kube namespace and pod name
                   namespace: {{resourceGroupName}}  #azure resource group
-                  selector: {{ resource }} # azure VM name
+                  selector: {{resource}} # azure VM name
             # The chaos actions will be executed in the order specified
             actions:
               - start:
@@ -25,7 +25,6 @@ config:
                   status: true
               - terminate:
                   status: true
-
       hypothesize:
         # All actions supported by Kraken + Scaling up/down of pods
         steady-state:
