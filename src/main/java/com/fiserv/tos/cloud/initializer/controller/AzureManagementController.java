@@ -180,6 +180,7 @@ public class AzureManagementController {
                     model.addAttribute("subscriptionId",subscriptionId);
                     model.addAttribute("resourceGroupName",resourceGroupName);
                     model.addAttribute("resource",resourceId.name());
+                    break;
                 }
                 System.out.printf("- Resource type: %s, Name: %s, ID: %s%n", resourceId.resourceType(), resourceId.name(), resourceId.toString());
             }
