@@ -38,6 +38,8 @@
     <orderEntry type="library" name="Maven: org.springframework:spring-context:5.3.26" level="project" />
     <orderEntry type="library" name="Maven: org.springframework:spring-expression:5.3.26" level="project" />
     <orderEntry type="library" name="Maven: org.mongodb:bson:4.7.2" level="project" />
+    <orderEntry type="library" name="Maven: org.springframework.boot:spring-boot-starter-mustache:2.6.14" level="project" />
+    <orderEntry type="library" name="Maven: com.samskivert:jmustache:1.15" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.springframework.boot:spring-boot-starter-test:2.7.10" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.springframework.boot:spring-boot-test:2.7.10" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.springframework.boot:spring-boot-test-autoconfigure:2.7.10" level="project" />

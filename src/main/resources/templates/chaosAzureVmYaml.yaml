@@ -1,0 +1,55 @@
+project-uaid: 1024
+project-name: dev-portal
+config:
+  # Sleep time between execution of each action - scale-down, scale-up etc.
+  maxSecondsBetweenRuns: 15
+  # Scenario is a set of chaos experiments you like to run on a specific component of an application
+  scenarios:
+    - name: "Chaos Azure Test"
+      envType: "azure"
+      # Steps could be podAction for Chaos experimenting OpenShift/Kubenetes or
+      # proxyAction for Chaos experimenting an endpoint for failures, latency, different http response codes etc.
+      steps:
+        - podAction:
+            server: { { subscriptionId } } # azure subscription
+            matches:
+              - labels:
+                  # Kube namespace and pod name
+                  namespace: {{resourceGroupName}}  #azure resource group
+                  selector: {{ resource }} # azure VM name
+            # The chaos actions will be executed in the order specified
+            actions:
+              - start:
+                  status: true
+              - stop:
+                  status: true
+              - terminate:
+                  status: true
+
+      hypothesize:
+        # All actions supported by Kraken + Scaling up/down of pods
+        steady-state:
+          - hypothesis: &healthcheck
+              - name: ch
+                endpoint: https://perf-developerstudio.fiserv.com/api/healthcheck
+                handler : generalhealth
+                type: general
+            rules:
+              - ch:
+                delaytime: 0 #in milliseconds
+                #match : [{"name":"Tenant - CommerceHub","status":"STATUS_OK"}]
+                status : [200]
+        chaos-state:
+          - hypothesis: *healthcheck
+            rules:
+              - ch:
+                delaytime: 0 #in milliseconds
+                match : [{"name":"Tenant - CommerceHub","status":"STATUS_ERROR"}]
+          - hypothesis:
+              - name : ch-alert
+                endpoint: "https://management.azure.com/subscriptions/754bc484-e7df-461c-90dd-8f3887aeb94f/providers/Microsoft.AlertsManagement/alerts?api-version=2019-03-01&monitorCondition=Fired&customTimeRange=2021-12-21T06:15:47Z/2021-12-21T06:30:45Z"
+                handler : alert
+            rules:
+              - ch-alert:
+                delaytime: 0 #in milliseconds
+                match : [{"name":"perf_tenant-carat-api-services_pod_count_zero_alert"}]
