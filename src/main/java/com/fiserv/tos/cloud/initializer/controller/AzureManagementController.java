@@ -185,7 +185,7 @@ public class AzureManagementController {
                 System.out.printf("- Resource type: %s, Name: %s, ID: %s%n", resourceId.resourceType(), resourceId.name(), resourceId.toString());
             }
         }
-        return new ModelAndView("myyaml", model);
+        return new ModelAndView("chaosAzureVmYaml", model);
     }
 
     @GetMapping("/")
