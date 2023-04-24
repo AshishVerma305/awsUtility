@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 public class Resources {
-    public String resourceName;
-    public String resourceType;
-    public String resourceId;
+    public String resource;
+    public String resourceGroupName;
+    public String subscriptionId;
 }

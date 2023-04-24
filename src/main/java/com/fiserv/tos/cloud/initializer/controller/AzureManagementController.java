@@ -144,9 +144,9 @@ public class AzureManagementController {
                 ResourceId resourceId = ResourceId.fromString(resource.id());
                 System.out.println(resourceId);
                 Resources resourcesData=new Resources();
-                resourcesData.setResourceId(resourceId.toString());
-                resourcesData.setResourceName(resourceId.name());
-                resourcesData.setResourceType(resourceId.resourceType());
+//                resourcesData.setResourceId(resourceId.toString());
+                resourcesData.setResource(resourceId.name());
+//                resourcesData.setResourceType(resourceId.resourceType());
                 resourceList.add(resourcesData);
                 System.out.printf("- Resource type: %s, Name: %s, ID: %s%n", resourceId.resourceType(), resourceId.name(), resourceId.toString());
             }
@@ -183,9 +183,9 @@ public class AzureManagementController {
                 {
                     try {
                         Resources resourcesData=new Resources();
-                        resourcesData.setResourceId(resourceId.toString());
-                        resourcesData.setResourceName(resourceId.name());
-                        resourcesData.setResourceType(resourceId.resourceType());
+                        resourcesData.setSubscriptionId(subscriptionId);
+                        resourcesData.setResource(resourceId.name());
+                        resourcesData.setResourceGroupName(resourceGroupName);
                         templateRenderer.generateFile("chaosAzureVmYaml.yaml", Paths.get("src/main/resources/templates/"+resourceId.name()+resourceId.resourceType()+".yaml"),resourcesData);
                         resourceList.add(resourcesData);
                         model.put("subscriptionId",subscriptionId);
