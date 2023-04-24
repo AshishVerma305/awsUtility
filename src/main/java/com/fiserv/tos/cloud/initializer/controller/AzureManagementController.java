@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fiserv.tos.cloud.initializer.model.*;
 import com.fiserv.tos.cloud.initializer.util.AzureSecurityUtil;
+import com.fiserv.tos.cloud.initializer.util.TemplateRenderer;
 import com.microsoft.azure.Resource;
 import com.microsoft.azure.management.Azure;
 import com.microsoft.azure.management.network.Network;
@@ -13,12 +14,15 @@ import com.microsoft.azure.management.resources.Subscription;
 
 import com.microsoft.azure.management.resources.fluentcore.arm.ResourceId;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.*;
@@ -28,6 +32,10 @@ import java.util.*;
 public class AzureManagementController {
 
     private AzureSecurityUtil azureSecurityUtil;
+
+    @Autowired
+    @Qualifier("artifactTemplateRenderer")
+    private TemplateRenderer templateRenderer;
 
     @GetMapping("/subscriptions")
     public String getSubscriptions() {
@@ -146,18 +154,18 @@ public class AzureManagementController {
         return jsonMessage(resourceList);
     }
     @GetMapping("/getVms")
-    public ModelAndView getAllVMS(@RequestParam(name = "subscriptionid") String subscriptionId, @RequestParam(name = "resourceGroupName") String resourceGroupName,Map<String, Object> model) {
+    public String getAllVMS(@RequestParam(name = "subscriptionid") String subscriptionId, @RequestParam(name = "resourceGroupName") String resourceGroupName,Map<String, Object> model) {
         Azure azure = null;
         try {
             azure = this.azureSecurityUtil.getAzure(subscriptionId);
         } catch (Exception e) {
-//            return jsonMessage(new ErrorMessage("Error accessing subscription:"+e.getMessage()));
+            return jsonMessage(new ErrorMessage("Error accessing subscription:"+e.getMessage()));
         }
 
         ResourceGroup resourceGroup = azure.resourceGroups().getByName(resourceGroupName);
         if (resourceGroup == null) {
             System.out.printf("Resource group '%s' not found.%n", resourceGroupName);
-//            return "x";
+            return jsonMessage(new ErrorMessage("Resource group not found"));
         }
 
         System.out.printf("Resource group '%s' found with ID: %s%n", resourceGroupName, resourceGroup.id());
@@ -173,19 +181,25 @@ public class AzureManagementController {
                 System.out.println(resourceId);
                 if(resourceId.resourceType().equalsIgnoreCase("virtualMachines"))
                 {
-                    Resources resourcesData=new Resources();
-                    resourcesData.setResourceId(resourceId.toString());
-                    resourcesData.setResourceName(resourceId.name());
-                    resourcesData.setResourceType(resourceId.resourceType());
-                    resourceList.add(resourcesData);
-                    model.put("subscriptionId",subscriptionId);
-                    model.put("resourceGroupName",resourceGroupName);
-                    model.put("resource",resourceId.name());
+                    try {
+                        Resources resourcesData=new Resources();
+                        resourcesData.setResourceId(resourceId.toString());
+                        resourcesData.setResourceName(resourceId.name());
+                        resourcesData.setResourceType(resourceId.resourceType());
+                        templateRenderer.generateFile("chaosAzureVmYaml.yaml", Paths.get("src/main/resources/templates/"+resourceId.name()+resourceId.resourceType()+".yaml"),resourcesData);
+                        resourceList.add(resourcesData);
+                        model.put("subscriptionId",subscriptionId);
+                        model.put("resourceGroupName",resourceGroupName);
+                        model.put("resource",resourceId.name());
+                    }catch (Exception e)
+                    {
+                        return jsonMessage(new ErrorMessage("Mustache Exception"));
+                    }
                 }
                 System.out.printf("- Resource type: %s, Name: %s, ID: %s%n", resourceId.resourceType(), resourceId.name(), resourceId.toString());
             }
         }
-        return new ModelAndView("chaosAzureVmYaml", model);
+        return jsonMessage(resourceList);
     }
 
     @GetMapping("/")
