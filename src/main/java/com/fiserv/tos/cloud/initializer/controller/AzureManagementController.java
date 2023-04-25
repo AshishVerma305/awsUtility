@@ -8,6 +8,9 @@ import com.fiserv.tos.cloud.initializer.util.TemplateRenderer;
 import com.microsoft.azure.Resource;
 import com.microsoft.azure.management.Azure;
 import com.microsoft.azure.management.network.Network;
+import com.microsoft.azure.management.network.NetworkWatcher;
+import com.microsoft.azure.management.network.Topology;
+import com.microsoft.azure.management.network.TopologyParameters;
 import com.microsoft.azure.management.resources.GenericResource;
 import com.microsoft.azure.management.resources.ResourceGroup;
 import com.microsoft.azure.management.resources.Subscription;
@@ -98,7 +101,7 @@ public class AzureManagementController {
         } catch (Exception e) {
             return jsonMessage(new ErrorMessage("Error accessing subscription:"+e.getMessage()));
         }
-
+        NetworkWatcher networkWatcher=azure.networkWatchers().getByResourceGroup(resourceGroupName,"NetworkWatcher_centralus");
         ResourceGroup resourceGroup = azure.resourceGroups().getByName(resourceGroupName);
         if (resourceGroup == null) {
             System.out.printf("Resource group '%s' not found.%n", resourceGroupName);
@@ -206,6 +209,20 @@ public class AzureManagementController {
     public ModelAndView getProducts(Map<String, Object> model){
         model.put("message","nope");
         return new ModelAndView("myyaml", model);
+    }
+
+    @GetMapping("/networkWatcher")
+    public String getnetworkWatcher(@RequestParam(name = "subscriptionid") String subscriptionId,@RequestParam(name = "resourceGroupName") String resourceGroupName,@RequestParam(name = "networkWatcherName") String networkWatcherName) {
+        Azure azure = null;
+        try {
+            azure = this.azureSecurityUtil.getAzure(subscriptionId);
+        } catch (Exception e) {
+            return jsonMessage(new ErrorMessage("Error accessing subscription:"+e.getMessage()));
+        }
+        NetworkWatcher networkWatcher=azure.networkWatchers().getByResourceGroup(resourceGroupName,networkWatcherName);
+        Topology topology=networkWatcher.topology().withTargetResourceGroup(resourceGroupName).execute();
+        System.out.println(topology);
+        return "x";
     }
 
     private static String jsonMessage(Object error){
