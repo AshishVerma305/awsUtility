@@ -220,6 +220,10 @@ public class AzureManagementController {
             return jsonMessage(new ErrorMessage("Error accessing subscription:"+e.getMessage()));
         }
         List<NetworkWatcher> networkWatcherList =azure.networkWatchers().listByResourceGroup(resourceGroupName);
+        networkWatcherList.stream().forEach(networkWatcher -> {
+            System.out.println(networkWatcher);
+            System.out.println(networkWatcher.topology());
+    });
         System.out.println(networkWatcherList);
 //        NetworkWatcher networkWatcher=azure.networkWatchers().getByResourceGroup(resourceGroupName,networkWatcherName);
 //        System.out.println(networkWatcher);
