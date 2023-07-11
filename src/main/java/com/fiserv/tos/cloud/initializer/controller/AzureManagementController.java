@@ -1,5 +1,12 @@
 package com.fiserv.tos.cloud.initializer.controller;
 
+import com.amazonaws.arn.Arn;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.connect.model.DescribeInstanceRequest;
+import com.amazonaws.services.ec2.AmazonEC2;
+import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
+import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
+import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fiserv.tos.cloud.initializer.model.*;
@@ -20,15 +27,19 @@ import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.*;
+
+import com.amazonaws.services.resourcegroupstaggingapi.AWSResourceGroupsTaggingAPI;
+import com.amazonaws.services.resourcegroupstaggingapi.AWSResourceGroupsTaggingAPIClientBuilder;
+import com.amazonaws.services.resourcegroupstaggingapi.model.GetResourcesRequest;
+import com.amazonaws.services.resourcegroupstaggingapi.model.GetResourcesResult;
+import com.amazonaws.services.resourcegroupstaggingapi.model.ResourceTagMapping;
 
 @RestController
 @AllArgsConstructor
@@ -205,12 +216,6 @@ public class AzureManagementController {
         return jsonMessage(resourceList);
     }
 
-    @GetMapping("/")
-    public ModelAndView getProducts(Map<String, Object> model){
-        model.put("message","nope");
-        return new ModelAndView("myyaml", model);
-    }
-
     @GetMapping("/networkWatcher")
     public String getnetworkWatcher(@RequestParam(name = "subscriptionid") String subscriptionId,@RequestParam(name = "resourceGroupName") String resourceGroupName,@RequestParam(name = "networkWatcherName") String networkWatcherName) {
         Azure azure = null;
@@ -219,17 +224,95 @@ public class AzureManagementController {
         } catch (Exception e) {
             return jsonMessage(new ErrorMessage("Error accessing subscription:"+e.getMessage()));
         }
-        List<NetworkWatcher> networkWatcherList =azure.networkWatchers().listByResourceGroup(resourceGroupName);
-        networkWatcherList.stream().forEach(networkWatcher -> {
-            System.out.println(networkWatcher);
-            System.out.println(networkWatcher.topology());
-    });
+        List<NetworkWatcher> networkWatcherList =azure.networkWatchers().list();
         System.out.println(networkWatcherList);
-//        NetworkWatcher networkWatcher=azure.networkWatchers().getByResourceGroup(resourceGroupName,networkWatcherName);
-//        System.out.println(networkWatcher);
-//        Topology topology=networkWatcher.topology().withTargetResourceGroup(resourceGroupName).execute();
-//        System.out.println(topology);
+        NetworkWatcher networkWatcher=azure.networkWatchers().getByResourceGroup(resourceGroupName,networkWatcherName);
+        System.out.println(networkWatcher);
+        Topology topology=networkWatcher.topology().withTargetResourceGroup(resourceGroupName).execute();
+        System.out.println(topology);
         return "x";
+    }
+
+
+    @RequestMapping(value = "/listResources", method = RequestMethod.POST)
+    @ResponseBody
+    public void listResources(Map<String, Object> model)
+    {
+        for (Regions region : Regions.values()) {
+            try {
+                AWSResourceGroupsTaggingAPI taggingAPI = AWSResourceGroupsTaggingAPIClientBuilder.standard()
+                        .withRegion(region)
+                        .build();
+
+                GetResourcesRequest request = new GetResourcesRequest();
+                GetResourcesResult result = taggingAPI.getResources(request);
+
+                System.out.println("Region: " + region.getName());
+                for (ResourceTagMapping resource : result.getResourceTagMappingList()) {
+                    System.out.println("resources: "+resource);
+                    System.out.println("ResourceARN: " + resource.getResourceARN());
+                    System.out.println("ResourceType: " + getResourceTypeFromARN(resource.getResourceARN()));
+                    System.out.println("Tags: " + resource.getTags());
+                    AwsResource awsResource=new AwsResource();
+                    awsResource.setResourceArn(resource.getResourceARN());
+                    awsResource.setRegion(region.getName());
+                    awsResource.setResourceType(getResourceTypeFromARN(resource.getResourceARN()));
+                    awsResource.setAccountName(getAccountFromARN(resource.getResourceARN()));
+                    if(awsResource.getResourceType().equalsIgnoreCase("ec2")&&getResourceFromARN(resource.getResourceARN()).equalsIgnoreCase("instance"))
+                    {
+                        AmazonEC2 amazonEC2Client= AmazonEC2ClientBuilder.standard().withRegion(region).build();
+                        DescribeInstancesRequest describeInstance= new DescribeInstancesRequest();
+                        List<String> idCollection=new ArrayList<>();
+                        idCollection.add(getResourceIdFromARN(awsResource.getResourceArn()));
+                        describeInstance.setInstanceIds(idCollection);
+                        DescribeInstancesResult describeInstancesResult=amazonEC2Client.describeInstances(describeInstance);
+                        System.out.println("describeInstancesResult------>"+describeInstancesResult);
+                        templateRenderer.generateFile("chaosAwsTest.yaml", Paths.get("src/main/resources/templates/"+region.getName()+resource.getResourceARN()+".yaml"),awsResource);
+                        model.put("region",region.getName());
+                        model.put("resourceId",resource.getResourceARN());
+                        model.put("accountName",awsResource.getAccountName());
+                        model.put("resourceType",awsResource.getResourceType());
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to retrieve resources in region " + region.getName() + ": " + e.getMessage());
+            }
+        }
+    }
+
+    private static String getResourceTypeFromARN(String arn) {
+        // Assuming the resource type is the 3rd component in the ARN
+        String[] arnComponents = arn.split(":");
+        if (arnComponents.length >= 3) {
+            return arnComponents[2];
+        }
+        return "";
+    }
+
+    private static String getResourceIdFromARN(String arn) {
+        // Assuming the resource type is the 3rd component in the ARN
+        String[] arnComponents = arn.split(":");
+        if (arnComponents.length >= 3) {
+            return arnComponents[5].split("/")[1];
+        }
+        return "";
+    }
+    private static String getResourceFromARN(String arn) {
+        // Assuming the resource type is the 3rd component in the ARN
+        String[] arnComponents = arn.split(":");
+        if (arnComponents.length >= 3) {
+            return arnComponents[5].split("/")[0];
+        }
+        return "";
+    }
+
+    private static String getAccountFromARN(String arn) {
+        // Assuming the resource type is the 3rd component in the ARN
+        String[] arnComponents = arn.split(":");
+        if (arnComponents.length >= 3) {
+            return arnComponents[4];
+        }
+        return "";
     }
 
     private static String jsonMessage(Object error){

@@ -5,31 +5,33 @@ config:
   maxSecondsBetweenRuns: 15
   # Scenario is a set of chaos experiments you like to run on a specific component of an application
   scenarios:
-    - name: "Chaos Azure Test"
-      envType: "azure"
-      # Steps could be podAction for Chaos experimenting OpenShift/Kubenetes or
-      # proxyAction for Chaos experimenting an endpoint for failures, latency, different http response codes etc.
+    - name: "Chaos Aws Test"
+      envType: "aws"
+      # Steps could be awsAction for Chaos experimenting EC2 instance or
       steps:
-        - podAction:
-            server: {{subscriptionId}} # azure subscription
-            matches:
-              - labels:
-                  namespace: {{resourceGroupName}}  #azure resource group
-                  selector: {{resource}} # azure VM name
+        - cloudAction:
+           #aws resource 
+            subscription: {{accountName}}
+            resource: {{resourceId}} # EC2 instance Id
+            region: {{region}}
+            resourceType: {{resourceType}}
             # The chaos actions will be executed in the order specified
+            #Different possible actions
             actions:
-              - start:
-                  status: true
-              - stop:
-                  status: true
-              - terminate:
-                  status: true
+              - stop: true # stop an EC2 instance
+              - start: true # start an EC2 instance
+              - restart: true # Restart an EC2 instance
+              - terminate: true # terminate an EC2 instance
+              - diskdetach:   # detach ebs volume from an EC2 instance
+                  volumeid: {{volumeId}}
+              - vmresize:      # Resize an EC2 instance
+                  size: {{instanceType}}
       hypothesize:
-        # All actions supported by Kraken + Scaling up/down of pods
+        # All actions supported by Azure EC2 + Scaling up/down of EC2
         steady-state:
           - hypothesis: &healthcheck
               - name: ch
-                endpoint: https://perf-developerstudio.fiserv.com/api/healthcheck
+                endpoint: {{hypothesisEndpoint}}
                 handler : generalhealth
                 type: general
             rules:
