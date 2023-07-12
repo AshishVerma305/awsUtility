@@ -268,10 +268,13 @@ public class AzureManagementController {
                         DescribeInstancesResult describeInstancesResult=amazonEC2Client.describeInstances(describeInstance);
                         System.out.println("describeInstancesResult------>"+describeInstancesResult);
                         templateRenderer.generateFile("chaosAwsTest.yaml", Paths.get("src/main/resources/templates/"+region.getName()+resource.getResourceARN()+".yaml"),awsResource);
-                        model.put("region",region.getName());
-                        model.put("resourceId",resource.getResourceARN());
                         model.put("accountName",awsResource.getAccountName());
+                        model.put("resourceId",getResourceIdFromARN(awsResource.getResourceArn()));
+                        model.put("region",region.getName());
                         model.put("resourceType",awsResource.getResourceType());
+                        model.put("volumeId",1);
+                        model.put("instanceType","t2.micro");
+                        model.put("hypothesisEndpoint","https://google.com");
                     }
                 }
             } catch (Exception e) {

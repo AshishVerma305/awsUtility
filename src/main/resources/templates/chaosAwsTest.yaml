@@ -12,7 +12,7 @@ config:
         - cloudAction:
            #aws resource 
             subscription: {{accountName}}
-            resource: {{resourceId}} # EC2 instance Id
+            resource: {{resourceId}} # EC2 instance
             region: {{region}}
             resourceType: {{resourceType}}
             # The chaos actions will be executed in the order specified
