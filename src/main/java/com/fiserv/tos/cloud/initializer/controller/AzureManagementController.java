@@ -271,7 +271,7 @@ public class AzureManagementController {
                         describeInstance.setInstanceIds(idCollection);
                         DescribeInstancesResult describeInstancesResult=amazonEC2Client.describeInstances(describeInstance);
                         System.out.println("describeInstancesResult------>"+describeInstancesResult);
-                        templateRenderer.generateFile("chaosAwsTest.yaml", Paths.get("src/main/resources/templates/"+region.getName()+getResourceIdFromARN(resource.getResourceARN())+getResourceFromARN(resource.getResourceARN())+getAccountFromARN(resource.getResourceARN())+".yaml"),awsResource);
+                        templateRenderer.generateFile("chaosAwsTest.yaml", Paths.get("yamlFiles/"+region.getName()+getResourceIdFromARN(resource.getResourceARN())+getResourceFromARN(resource.getResourceARN())+getAccountFromARN(resource.getResourceARN())+".yaml"),awsResource);
                         System.out.println("------------------->"+"rendered test yaml");
                         model.put("accountName",awsResource.getAccountName());
                         System.out.println("accountName"+awsResource.getAccountName());
@@ -313,7 +313,7 @@ public class AzureManagementController {
         awsResource.setInstanceType("t2-micro");
         awsResource.setHypothesisEndpoint("https://google.com");
         try {
-            templateRenderer.generateFile("chaosAwsTest.yaml", Paths.get("src/main/resources/templates/"+"us-east-2"+"i-0ee26ee1ec5e30801"+".yaml"),awsResource);
+            templateRenderer.generateFile("chaosAwsTest.yaml", Paths.get("yamlFiles/"+"us-east-2"+"i-0ee26ee1ec5e30801"+".yaml"),awsResource);
             model.put("accountName",awsResource.getAccountName());
             System.out.println("accountName"+awsResource.getAccountName());
 
