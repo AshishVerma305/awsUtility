@@ -30,6 +30,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -254,32 +255,87 @@ public class AzureManagementController {
                     System.out.println("ResourceType: " + getResourceTypeFromARN(resource.getResourceARN()));
                     System.out.println("Tags: " + resource.getTags());
                     AwsResource awsResource=new AwsResource();
-                    awsResource.setResourceArn(resource.getResourceARN());
+                    awsResource.setResourceId(getResourceIdFromARN(resource.getResourceARN()));
                     awsResource.setRegion(region.getName());
                     awsResource.setResourceType(getResourceTypeFromARN(resource.getResourceARN()));
                     awsResource.setAccountName(getAccountFromARN(resource.getResourceARN()));
+                    awsResource.setVolumeId(1);
+                    awsResource.setInstanceType("t2-micro");
+                    awsResource.setHypothesisEndpoint("https://google.com");
                     if(awsResource.getResourceType().equalsIgnoreCase("ec2")&&getResourceFromARN(resource.getResourceARN()).equalsIgnoreCase("instance"))
                     {
                         AmazonEC2 amazonEC2Client= AmazonEC2ClientBuilder.standard().withRegion(region).build();
                         DescribeInstancesRequest describeInstance= new DescribeInstancesRequest();
                         List<String> idCollection=new ArrayList<>();
-                        idCollection.add(getResourceIdFromARN(awsResource.getResourceArn()));
+                        idCollection.add(getResourceIdFromARN(resource.getResourceARN()));
                         describeInstance.setInstanceIds(idCollection);
                         DescribeInstancesResult describeInstancesResult=amazonEC2Client.describeInstances(describeInstance);
                         System.out.println("describeInstancesResult------>"+describeInstancesResult);
-                        templateRenderer.generateFile("chaosAwsTest.yaml", Paths.get("src/main/resources/templates/"+region.getName()+resource.getResourceARN()+".yaml"),awsResource);
+                        templateRenderer.generateFile("chaosAwsTest.yaml", Paths.get("src/main/resources/templates/"+region.getName()+getResourceIdFromARN(resource.getResourceARN())+".yaml"),awsResource);
+                        System.out.println("------------------->"+"rendered test yaml");
                         model.put("accountName",awsResource.getAccountName());
-                        model.put("resourceId",getResourceIdFromARN(awsResource.getResourceArn()));
+                        System.out.println("accountName"+awsResource.getAccountName());
+
+                        model.put("resourceId",awsResource.getResourceId());
+                        System.out.println("resourceId"+getResourceIdFromARN(awsResource.getResourceId()));
+
                         model.put("region",region.getName());
+                        System.out.println("region"+region.getName());
+
                         model.put("resourceType",awsResource.getResourceType());
-                        model.put("volumeId",1);
-                        model.put("instanceType","t2.micro");
-                        model.put("hypothesisEndpoint","https://google.com");
+                        System.out.println("resourceType"+awsResource.getResourceType());
+
+                        model.put("volumeId",awsResource.getVolumeId());
+                        System.out.println("volumeId"+1);
+
+                        model.put("instanceType",awsResource.getInstanceType());
+                        System.out.println("instanceType"+"t2.micro");
+
+                        model.put("hypothesisEndpoint",awsResource.getHypothesisEndpoint());
+                        System.out.println("hypothesisEndpoint"+"https://google.com");
                     }
                 }
             } catch (Exception e) {
                 System.err.println("Failed to retrieve resources in region " + region.getName() + ": " + e.getMessage());
             }
+        }
+    }
+
+    @GetMapping("/help")
+    public void getResources(Map<String, Object> model)
+    {
+        AwsResource awsResource=new AwsResource();
+        awsResource.setAccountName("249374488161");
+        awsResource.setResourceId("i-0ee26ee1ec5e30801");
+        awsResource.setResourceType("ec2");
+        awsResource.setRegion("us-east-2");
+        awsResource.setVolumeId(1);
+        awsResource.setInstanceType("t2-micro");
+        awsResource.setHypothesisEndpoint("https://google.com");
+        try {
+            templateRenderer.generateFile("chaosAwsTest.yaml", Paths.get("src/main/resources/templates/"+"us-east-2"+"i-0ee26ee1ec5e30801"+".yaml"),awsResource);
+            model.put("accountName",awsResource.getAccountName());
+            System.out.println("accountName"+awsResource.getAccountName());
+
+            model.put("resourceId",awsResource.getResourceId());
+            System.out.println("resourceId"+awsResource.getResourceId());
+
+            model.put("region","us-east-2");
+            System.out.println("region"+"us-east-2");
+
+            model.put("resourceType",awsResource.getResourceType());
+            System.out.println("resourceType"+awsResource.getResourceType());
+
+            model.put("volumeId",awsResource.getVolumeId());
+            System.out.println("volumeId"+1);
+
+            model.put("instanceType",awsResource.getInstanceType());
+            System.out.println("instanceType"+"t2.micro");
+
+            model.put("hypothesisEndpoint",awsResource.getHypothesisEndpoint());
+            System.out.println("hypothesisEndpoint"+awsResource.getHypothesisEndpoint());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -326,4 +382,6 @@ public class AzureManagementController {
             throw new RuntimeException(e);
         }
     }
+
+
 }
